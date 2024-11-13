@@ -2,33 +2,35 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const Form = () => {
-  const [data, setData] = useState([]); // Khởi tạo state để lưu dữ liệu API
-  const [loading, setLoading] = useState(true); // Trạng thái tải dữ liệu
-  const [error, setError] = useState(null); // Trạng thái lỗi
-  const [isCreating, setIsCreating] = useState(false); // Trạng thái để kiểm tra form tạo sản phẩm mới
-  const [newProduct, setNewProduct] = useState({ name: '', price: '' }); // Trạng thái lưu thông tin sản phẩm mới
-  const [editProduct, setEditProduct] = useState(null); // Trạng thái lưu thông tin sản phẩm đang chỉnh sửa
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [newProduct, setNewProduct] = useState({ name: '', price: '' });
+  const [editProduct, setEditProduct] = useState(null);
+
+  // URL API của backend
+  const API_URL = 'http://localhost:8000/products';
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get('https://ca957df743e560e6ad8f.free.beeceptor.com/api/users/');
+        const response = await axios.get(API_URL);
         setData(response.data); // Cập nhật state với dữ liệu từ API
-        setLoading(false); // Dữ liệu đã tải xong
+        setLoading(false);
       } catch (error) {
-        setError('Lỗi khi lấy dữ liệu từ API'); // Cập nhật lỗi nếu có
+        setError('Lỗi khi lấy dữ liệu từ API');
         setLoading(false);
       }
     };
 
-    fetchData(); // Gọi hàm lấy dữ liệu khi component render lần đầu
-  }, []); // Mảng rỗng [] để chỉ chạy một lần khi component render
+    fetchData();
+  }, []);
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`https://ca957df743e560e6ad8f.free.beeceptor.com/api/users/${id}`);
-      // Nếu xóa thành công, cập nhật lại danh sách dữ liệu
-      setData(data.filter((product) => product.id !== id));
+      await axios.delete(`${API_URL}/${id}`);
+      setData(data.filter((product) => product._id !== id)); // Xóa sản phẩm khỏi state
     } catch (error) {
       console.error('Lỗi khi xóa sản phẩm:', error);
     }
@@ -36,51 +38,42 @@ const Form = () => {
 
   const handleUpdate = async (id) => {
     try {
-      // Gửi yêu cầu PUT để cập nhật sản phẩm
-      const response = await axios.put(`https://ca957df743e560e6ad8f.free.beeceptor.com/api/users/${id}`, editProduct);
-      // Cập nhật lại dữ liệu sau khi cập nhật thành công
-      setData(data.map((product) => 
-        product.id === id ? { ...product, ...response.data } : product
+      const response = await axios.put(`${API_URL}/${id}`, editProduct);
+      setData(data.map((product) =>
+        product._id === id ? { ...product, ...response.data } : product
       ));
-      setEditProduct(null); // Reset trạng thái chỉnh sửa
+      setEditProduct(null);
     } catch (error) {
       console.error('Lỗi khi cập nhật sản phẩm:', error);
     }
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (newProduct.name && newProduct.price) {
-      const newProductData = {
-        id: Math.random().toString(36).substr(2, 9), // Tạo id ngẫu nhiên cho sản phẩm
-        name: newProduct.name,
-        price: newProduct.price,
-      };
-      setData([newProductData, ...data]); // Thêm sản phẩm mới vào đầu danh sách
-      setNewProduct({ name: '', price: '' }); // Reset form
-      setIsCreating(false); // Đóng form tạo mới
+      try {
+        const response = await axios.post(API_URL, newProduct);
+        setData([response.data, ...data]); // Thêm sản phẩm mới vào danh sách
+        setNewProduct({ name: '', price: '' });
+        setIsCreating(false);
+      } catch (error) {
+        console.error('Lỗi khi thêm sản phẩm:', error);
+      }
     } else {
       alert('Vui lòng nhập đầy đủ thông tin!');
     }
   };
 
-  if (loading) {
-    return <p>Đang tải dữ liệu...</p>; // Hiển thị khi đang tải dữ liệu
-  }
-
-  if (error) {
-    return <p>{error}</p>; // Hiển thị lỗi nếu có
-  }
+  if (loading) return <p>Đang tải dữ liệu...</p>;
+  if (error) return <p>{error}</p>;
 
   return (
     <>
       <div>hello</div>
       
-      {/* Nút tạo sản phẩm mới */}
       <button onClick={() => setIsCreating(true)} style={{ marginBottom: '20px' }}>
         Tạo sản phẩm mới
       </button>
 
-      {/* Form tạo sản phẩm mới */}
       {isCreating && (
         <div style={{ marginBottom: '20px' }}>
           <h3>Tạo sản phẩm mới</h3>
@@ -103,7 +96,6 @@ const Form = () => {
         </div>
       )}
 
-      {/* Form cập nhật sản phẩm */}
       {editProduct && (
         <div style={{ marginBottom: '20px' }}>
           <h3>Cập nhật sản phẩm</h3>
@@ -121,7 +113,7 @@ const Form = () => {
             onChange={(e) => setEditProduct({ ...editProduct, price: e.target.value })}
             style={{ marginRight: '10px' }}
           />
-          <button onClick={() => handleUpdate(editProduct.id)}>Cập nhật</button>
+          <button onClick={() => handleUpdate(editProduct._id)}>Cập nhật</button>
           <button onClick={() => setEditProduct(null)} style={{ marginLeft: '10px' }}>Hủy</button>
         </div>
       )}
@@ -137,13 +129,13 @@ const Form = () => {
         </thead>
         <tbody>
           {data.map((product) => (
-            <tr key={product.id}>
+            <tr key={product._id}>
               <td>{product.name}</td>
               <td>{product.price}</td>
-              <td>{product.id}</td>
+              <td>{product._id}</td>
               <td>
                 <button onClick={() => setEditProduct(product)}>Cập nhật</button>
-                <button onClick={() => handleDelete(product.id)}>Xóa</button>
+                <button onClick={() => handleDelete(product._id)}>Xóa</button>
               </td>
             </tr>
           ))}
